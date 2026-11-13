@@ -1,13 +1,16 @@
 package com.bachelorprojekt_backend.config;
 
 import com.bachelorprojekt_backend.security.CustomStatelessCsrfFilter;
+import com.bachelorprojekt_backend.security.DeviceAuthenticationFilter;
+import com.bachelorprojekt_backend.security.DeviceStatusRequest;
 import com.bachelorprojekt_backend.security.JwtAuthenticationEntryPoint;
 import com.bachelorprojekt_backend.security.JwtAuthenticationFilter;
 import com.bachelorprojekt_backend.security.JwtTokenProvider;
+import com.bachelorprojekt_backend.repository.DeviceRepository;
 import lombok.AllArgsConstructor;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -34,6 +37,7 @@ public class SpringSecurityConfig {
     private final CustomStatelessCsrfFilter customStatelessCsrfFilter;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
+    private final DeviceRepository deviceRepository;
 
     @Bean
     public static PasswordEncoder passwordEncoder(){
@@ -41,6 +45,21 @@ public class SpringSecurityConfig {
     }
 
     @Bean
+    @Order(1)
+    SecurityFilterChain deviceSecurityFilterChain(HttpSecurity http) throws Exception {
+        http.securityMatcher(DeviceStatusRequest::matches)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(AbstractHttpConfigurer::disable)
+                .headers(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().hasAuthority("DEVICE"))
+                .addFilterBefore(new DeviceAuthenticationFilter(deviceRepository), UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         JwtAuthenticationFilter jwtFilter =
                 new JwtAuthenticationFilter(jwtTokenProvider, userDetailsService);
