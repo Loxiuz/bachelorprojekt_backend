@@ -46,6 +46,7 @@ public class SpringSecurityConfig {
 
     @Bean
     @Order(1)
+    @SuppressWarnings("java:S4502") // Device authentication uses an explicit bearer token, not cookies.
     SecurityFilterChain deviceSecurityFilterChain(HttpSecurity http) throws Exception {
         http.securityMatcher(DeviceStatusRequest::matches)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -60,6 +61,7 @@ public class SpringSecurityConfig {
 
     @Bean
     @Order(2)
+    @SuppressWarnings("java:S4502") // CustomStatelessCsrfFilter protects unsafe requests.
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         JwtAuthenticationFilter jwtFilter =
                 new JwtAuthenticationFilter(jwtTokenProvider, userDetailsService);
