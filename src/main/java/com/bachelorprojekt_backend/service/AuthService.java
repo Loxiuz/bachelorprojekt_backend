@@ -21,10 +21,10 @@ import java.util.Set;
 @Service
 public class AuthService {
 
-    private AuthenticationManager authenticationManager;
-    private UserRepository userRepository;
-    private RoleRepository roleRepository;
-    private JwtTokenProvider jwtTokenProvider;
+    private final AuthenticationManager authenticationManager;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final JwtTokenProvider jwtTokenProvider;
 
     public AuthService(
             JwtTokenProvider jwtTokenProvider,

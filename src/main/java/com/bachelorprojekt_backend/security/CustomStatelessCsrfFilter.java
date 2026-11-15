@@ -48,7 +48,7 @@ public class CustomStatelessCsrfFilter extends OncePerRequestFilter {
     }
 
     private boolean shouldSkipCsrfCheck(HttpServletRequest request) {
-        if (SAFE_METHODS.contains(request.getMethod())) {
+        if (SAFE_METHODS.contains(request.getMethod()) || DeviceStatusRequest.matches(request)) {
             return true;
         }
 
@@ -72,5 +72,4 @@ public class CustomStatelessCsrfFilter extends OncePerRequestFilter {
         return null;
     }
 }
-
 
