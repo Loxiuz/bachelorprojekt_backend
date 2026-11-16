@@ -16,7 +16,7 @@ import java.util.UUID;
 @Setter
 @Entity
 @NoArgsConstructor
-@Table(name = "status_readings")
+@Table(name = "status_readings_history")
 public class StatusReading {
 
     @Id

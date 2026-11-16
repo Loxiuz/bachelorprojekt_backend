@@ -31,6 +31,11 @@ const deviceTypes = {
 const deviceConfigs = [
     { id: "d06c72ee-56f1-4b6a-9a7a-18b58e36a111", type: "digitalDoor", intervalMs: 5000, token: process.env.SIMULATOR_TOKEN_A },
     { id: "d06c72ee-56f1-4b6a-9a7a-18b58e36a222", type: "digitalDoor", intervalMs: 5000, token: process.env.SIMULATOR_TOKEN_B },
+    { id: "d06c72ee-56f1-4b6a-9a7a-18b58e36a113", type: "digitalDoor", intervalMs: 5000, token: process.env.SIMULATOR_TOKEN_C },
+    { id: "d06c72ee-56f1-4b6a-9a7a-18b58e36a114", type: "digitalDoor", intervalMs: 5000, token: process.env.SIMULATOR_TOKEN_D },
+    { id: "d06c72ee-56f1-4b6a-9a7a-18b58e36a223", type: "digitalDoor", intervalMs: 5000, token: process.env.SIMULATOR_TOKEN_E },
+    { id: "d06c72ee-56f1-4b6a-9a7a-18b58e36a224", type: "digitalDoor", intervalMs: 5000, token: process.env.SIMULATOR_TOKEN_F },
+
 ].filter((config) => {
     if (config.token && !/^[A-Za-z0-9_-]{43}$/.test(config.token)) {
         throw new Error(`Invalid credential format for device ${config.id}`);
