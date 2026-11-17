@@ -3,10 +3,14 @@ package com.bachelorprojekt_backend.service;
 import com.bachelorprojekt_backend.dto.DeviceStatusDTO;
 import com.bachelorprojekt_backend.model.CurrentStatusReading;
 import com.bachelorprojekt_backend.model.Device;
+import com.bachelorprojekt_backend.model.DeviceEvent;
 import com.bachelorprojekt_backend.model.StatusReading;
 import com.bachelorprojekt_backend.repository.CurrentStatusReadingRepository;
 import com.bachelorprojekt_backend.repository.DeviceRepository;
+import com.bachelorprojekt_backend.repository.DeviceEventRepository;
 import com.bachelorprojekt_backend.repository.StatusReadingRepository;
+import com.bachelorprojekt_backend.types.DeviceEventType;
+import com.bachelorprojekt_backend.types.DeviceType;
 import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -25,7 +29,9 @@ class DeviceStatusServiceTest {
     private final DeviceRepository devices = mock(DeviceRepository.class);
     private final StatusReadingRepository readings = mock(StatusReadingRepository.class);
     private final CurrentStatusReadingRepository currentStatusReadings = mock(CurrentStatusReadingRepository.class);
-    private final DeviceStatusService service = new DeviceStatusService(devices, readings, currentStatusReadings);
+    private final DeviceEventRepository events = mock(DeviceEventRepository.class);
+    private final RuleService rules = mock(RuleService.class);
+    private final DeviceStatusService service = new DeviceStatusService(devices, readings, currentStatusReadings, events, rules);
     private final UUID deviceId = UUID.randomUUID();
     private final Instant readAt = Instant.parse("2026-01-01T12:00:00Z");
     private final DeviceStatusDTO status = new DeviceStatusDTO(readAt, 75, true, false, true);
@@ -104,6 +110,54 @@ class DeviceStatusServiceTest {
         assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
         verify(readings, never()).save(any());
         verifyNoInteractions(currentStatusReadings);
+    }
+
+    @Test
+    void recordsOnlyClosedToOpenTransitions() {
+        Device device = new Device();
+        device.setDeviceType(DeviceType.DIGITAL_DOOR);
+        when(devices.findByIdForStatusUpdate(deviceId)).thenReturn(Optional.of(device));
+        service.saveDeviceStatus(status, deviceId);
+        var current = org.mockito.ArgumentCaptor.forClass(CurrentStatusReading.class);
+        verify(currentStatusReadings).save(current.capture());
+        when(currentStatusReadings.findByDevice(device)).thenReturn(current.getValue());
+
+        service.saveDeviceStatus(new DeviceStatusDTO(readAt.plusSeconds(1), 75, true, true, true), deviceId);
+        service.saveDeviceStatus(new DeviceStatusDTO(readAt.plusSeconds(2), 75, true, true, true), deviceId);
+
+        var event = org.mockito.ArgumentCaptor.forClass(DeviceEvent.class);
+        verify(events).save(event.capture());
+        assertSame(device, event.getValue().getDevice());
+        assertEquals(DeviceEventType.DOOR_OPENED, event.getValue().getEventType());
+        assertEquals(readAt.plusSeconds(1), event.getValue().getOccurredAt());
+        verify(rules).evaluateEvent(event.getValue());
+    }
+
+    @Test
+    void firstOpenStatusDoesNotCountAsOpening() {
+        Device device = new Device();
+        device.setDeviceType(DeviceType.DIGITAL_DOOR);
+        when(devices.findByIdForStatusUpdate(deviceId)).thenReturn(Optional.of(device));
+        service.saveDeviceStatus(new DeviceStatusDTO(readAt, 75, true, true, true), deviceId);
+        verifyNoInteractions(events, rules);
+    }
+
+    @Test
+    void rejectsSameOrOlderTimestampWithoutChanges() {
+        Device device = new Device();
+        when(devices.findByIdForStatusUpdate(deviceId)).thenReturn(Optional.of(device));
+        var current = new CurrentStatusReading();
+        current.setReadAt(readAt);
+        when(currentStatusReadings.findByDevice(device)).thenReturn(current);
+
+        for (Instant time : List.of(readAt, readAt.minusSeconds(1))) {
+            ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                    () -> service.saveDeviceStatus(new DeviceStatusDTO(time, 75, true, true, true), deviceId));
+            assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
+        }
+        verify(currentStatusReadings, never()).save(any());
+        verifyNoInteractions(readings, events, rules);
+        assertEquals(readAt, current.getReadAt());
     }
 
     @Test
