@@ -1,7 +1,10 @@
 package com.bachelorprojekt_backend.model;
 
+import com.bachelorprojekt_backend.types.DeviceType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -21,6 +24,8 @@ public class Device {
     @ManyToOne
     private Door door;
     private String name;
+    @Enumerated(EnumType.STRING)
+    private DeviceType deviceType;
     @Column(unique = true, length = 64)
     private String credentialHash;
 }

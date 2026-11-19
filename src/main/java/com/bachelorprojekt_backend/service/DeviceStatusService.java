@@ -3,11 +3,15 @@ package com.bachelorprojekt_backend.service;
 import com.bachelorprojekt_backend.dto.DeviceStatusDTO;
 import com.bachelorprojekt_backend.model.CurrentStatusReading;
 import com.bachelorprojekt_backend.model.Device;
+import com.bachelorprojekt_backend.model.DeviceEvent;
 import com.bachelorprojekt_backend.model.StatusReading;
 import com.bachelorprojekt_backend.model.StatusReadingState;
 import com.bachelorprojekt_backend.repository.CurrentStatusReadingRepository;
 import com.bachelorprojekt_backend.repository.DeviceRepository;
+import com.bachelorprojekt_backend.repository.DeviceEventRepository;
 import com.bachelorprojekt_backend.repository.StatusReadingRepository;
+import com.bachelorprojekt_backend.types.DeviceEventType;
+import com.bachelorprojekt_backend.types.DeviceType;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,11 +25,17 @@ public class DeviceStatusService {
     private final DeviceRepository deviceRepository;
     private final StatusReadingRepository statusReadingRepository;
     private final CurrentStatusReadingRepository currentStatusReadingRepository;
+    private final DeviceEventRepository deviceEventRepository;
+    private final RuleService ruleService;
 
-    public DeviceStatusService(DeviceRepository deviceRepository, StatusReadingRepository statusReadingRepository, CurrentStatusReadingRepository currentStatusReadingRepository) {
+    public DeviceStatusService(DeviceRepository deviceRepository, StatusReadingRepository statusReadingRepository,
+                               CurrentStatusReadingRepository currentStatusReadingRepository,
+                               DeviceEventRepository deviceEventRepository, RuleService ruleService) {
         this.deviceRepository = deviceRepository;
         this.statusReadingRepository = statusReadingRepository;
         this.currentStatusReadingRepository = currentStatusReadingRepository;
+        this.deviceEventRepository = deviceEventRepository;
+        this.ruleService = ruleService;
     }
 
     @Transactional
@@ -35,6 +45,20 @@ public class DeviceStatusService {
 
         CurrentStatusReading currentStatusReading = currentStatusReadingRepository.findByDevice(device);
         if (currentStatusReading != null) {
+            if (!deviceStatusDTO.readAt().isAfter(currentStatusReading.getReadAt())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Status timestamp must be newer than the current status");
+            }
+            if (device.getDeviceType() == DeviceType.DIGITAL_DOOR
+                    && Boolean.FALSE.equals(currentStatusReading.getState().getDoorOpen())
+                    && Boolean.TRUE.equals(deviceStatusDTO.doorOpen())) {
+                DeviceEvent event = new DeviceEvent();
+                event.setId(UUID.randomUUID());
+                event.setDevice(device);
+                event.setEventType(DeviceEventType.DOOR_OPENED);
+                event.setOccurredAt(deviceStatusDTO.readAt());
+                ruleService.evaluateEvent(event);
+                deviceEventRepository.save(event);
+            }
             statusReadingRepository.save(fromCurrentStatusReading(currentStatusReading));
         } else {
             currentStatusReading = new CurrentStatusReading();
