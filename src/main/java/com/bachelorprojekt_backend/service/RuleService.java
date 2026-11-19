@@ -50,7 +50,7 @@ public class RuleService {
         }
         Tenant tenant = device.getDoor().getTenant();
         Instant openedAt = event.getOccurredAt();
-        for (HighActivityRule rule : highActivityRules(tenant.getId(), device.getDeviceType())) {
+        for (HighActivityRule rule : getHighActivityRulesFromConfig(tenant.getId(), device.getDeviceType())) {
             Instant start = openedAt.minus(rule.withinMinutes(), ChronoUnit.MINUTES);
             long previousOpenings = deviceEventRepository.countByDeviceIdAndEventTypeAndOccurredAtAfterAndOccurredAtLessThanEqual(
                     device.getId(), DeviceEventType.DOOR_OPENED, start, openedAt);
@@ -61,9 +61,7 @@ public class RuleService {
         }
     }
 
-
-
-    public List<HighActivityRule> highActivityRules(UUID tenantId, DeviceType deviceType) {
+    public List<HighActivityRule> getHighActivityRulesFromConfig(UUID tenantId, DeviceType deviceType) {
         RuleConfig config = getConfig(tenantId);
         if (config == null) {
             return List.of();

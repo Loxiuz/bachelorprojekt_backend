@@ -83,7 +83,7 @@ class RuleServiceTest {
                 """);
 
         assertEquals(List.of(new HighActivityRule("Valid", 5, 10)),
-                rules.highActivityRules(tenantId, DeviceType.DIGITAL_DOOR));
+                rules.getHighActivityRulesFromConfig(tenantId, DeviceType.DIGITAL_DOOR));
     }
 
     @Test
