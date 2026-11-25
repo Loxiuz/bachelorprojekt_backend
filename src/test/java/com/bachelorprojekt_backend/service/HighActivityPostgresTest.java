@@ -7,12 +7,12 @@ import com.bachelorprojekt_backend.dto.DeviceStatusDTO;
 import com.bachelorprojekt_backend.model.Device;
 import com.bachelorprojekt_backend.model.DeviceEvent;
 import com.bachelorprojekt_backend.model.Door;
-import com.bachelorprojekt_backend.model.RuleConfig;
+import com.bachelorprojekt_backend.model.TenantAlarmRuleConfig;
 import com.bachelorprojekt_backend.model.Tenant;
 import com.bachelorprojekt_backend.repository.CurrentStatusReadingRepository;
 import com.bachelorprojekt_backend.repository.DeviceRepository;
 import com.bachelorprojekt_backend.repository.DeviceEventRepository;
-import com.bachelorprojekt_backend.repository.RuleConfigRepository;
+import com.bachelorprojekt_backend.repository.TenantAlarmRuleConfigRepository;
 import com.bachelorprojekt_backend.repository.StatusReadingRepository;
 import com.bachelorprojekt_backend.types.DeviceType;
 import com.bachelorprojekt_backend.types.DeviceEventType;
@@ -46,7 +46,7 @@ class HighActivityPostgresTest {
     @Autowired private DeviceRepository devices;
     @Autowired private StatusReadingRepository readings;
     @Autowired private CurrentStatusReadingRepository currentReadings;
-    @Autowired private RuleConfigRepository configs;
+    @Autowired private TenantAlarmRuleConfigRepository configs;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private AlarmService alarmService;
     @Autowired private EntityManager entityManager;
@@ -85,9 +85,9 @@ class HighActivityPostgresTest {
             device.setDoor(door);
             device.setDeviceType(DeviceType.DIGITAL_DOOR);
             entityManager.persist(device);
-            RuleConfig config = new RuleConfig();
+            TenantAlarmRuleConfig config = new TenantAlarmRuleConfig();
             config.setTenant(tenant);
-            config.setConfig("""
+            config.setRuleConfig("""
                     {"rules":[{"ruleName":"High activity","ruleType":"HIGH_ACTIVITY","deviceType":"DIGITAL_DOOR",
                       "ruleCondition":{"openings":%d,"withinMinutes":10}}]}
                     """.formatted(threshold));

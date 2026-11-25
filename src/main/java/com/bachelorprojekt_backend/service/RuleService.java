@@ -3,14 +3,15 @@ package com.bachelorprojekt_backend.service;
 import com.bachelorprojekt_backend.alarm.HighActivityAlarm;
 import com.bachelorprojekt_backend.model.Device;
 import com.bachelorprojekt_backend.model.DeviceEvent;
-import com.bachelorprojekt_backend.model.RuleConfig;
+import com.bachelorprojekt_backend.model.TenantAlarmRuleConfig;
 import com.bachelorprojekt_backend.model.Tenant;
 import com.bachelorprojekt_backend.repository.DeviceEventRepository;
-import com.bachelorprojekt_backend.repository.RuleConfigRepository;
+import com.bachelorprojekt_backend.repository.TenantAlarmRuleConfigRepository;
 import com.bachelorprojekt_backend.rule.HighActivityRule;
 import com.bachelorprojekt_backend.types.AlarmType;
 import com.bachelorprojekt_backend.types.DeviceEventType;
 import com.bachelorprojekt_backend.types.DeviceType;
+import com.bachelorprojekt_backend.types.RuleType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import tools.jackson.core.JacksonException;
@@ -26,14 +27,14 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class RuleService {
-    private final RuleConfigRepository ruleConfigRepository;
+    private final TenantAlarmRuleConfigRepository tenantAlarmRuleConfigRepository;
     private final DeviceEventRepository deviceEventRepository;
     private final ObjectMapper objectMapper;
     private final AlarmService alarmService;
 
-    public RuleService(RuleConfigRepository ruleConfigRepository, DeviceEventRepository deviceEventRepository,
+    public RuleService(TenantAlarmRuleConfigRepository tenantAlarmRuleConfigRepository, DeviceEventRepository deviceEventRepository,
                        ObjectMapper objectMapper, AlarmService alarmService) {
-        this.ruleConfigRepository = ruleConfigRepository;
+        this.tenantAlarmRuleConfigRepository = tenantAlarmRuleConfigRepository;
         this.deviceEventRepository = deviceEventRepository;
         this.objectMapper = objectMapper;
         this.alarmService = alarmService;
@@ -55,20 +56,21 @@ public class RuleService {
             long previousOpenings = deviceEventRepository.countByDeviceIdAndEventTypeAndOccurredAtAfterAndOccurredAtLessThanEqual(
                     device.getId(), DeviceEventType.DOOR_OPENED, start, openedAt);
             if (previousOpenings < rule.openings() && previousOpenings + 1 >= rule.openings()) {
-                alarmService.send(new HighActivityAlarm(AlarmType.HIGH_ACTIVITY, tenant.getId(), device.getId(),
+                alarmService.send(new HighActivityAlarm(
+                        AlarmType.HIGH_ACTIVITY, tenant.getId(), device.getId(),
                         device.getDoor().getId(), rule.ruleName(), openedAt, previousOpenings + 1, rule.withinMinutes()));
             }
         }
     }
 
     public List<HighActivityRule> getHighActivityRulesFromConfig(UUID tenantId, DeviceType deviceType) {
-        RuleConfig config = getConfig(tenantId);
+        TenantAlarmRuleConfig config = getConfig(tenantId);
         if (config == null) {
             return List.of();
         }
         JsonNode root;
         try {
-            root = objectMapper.readTree(config.getConfig());
+            root = objectMapper.readTree(config.getRuleConfig());
         } catch (JacksonException e) {
             log.warn("Invalid rule configuration JSON for tenant {}", tenantId, e);
             return List.of();
@@ -82,9 +84,9 @@ public class RuleService {
         return result(rules, deviceType);
     }
 
-    private RuleConfig getConfig(UUID tenantId) {
-        RuleConfig config = ruleConfigRepository.findById(tenantId).orElse(null);
-        if (config == null || config.getConfig() == null) {
+    private TenantAlarmRuleConfig getConfig(UUID tenantId) {
+        TenantAlarmRuleConfig config = tenantAlarmRuleConfigRepository.findById(tenantId).orElse(null);
+        if (config == null || config.getRuleConfig() == null) {
             log.warn("No rule configuration for tenant {}", tenantId);
             return null;
         }
@@ -94,7 +96,7 @@ public class RuleService {
     private List<HighActivityRule> result(JsonNode rules, DeviceType deviceType) {
         List<HighActivityRule> result = new ArrayList<>();
         for (JsonNode rule : rules) {
-            if (!"HIGH_ACTIVITY".equals(rule.path("ruleType").asString()) ||
+            if (!RuleType.HIGH_ACTIVITY.name().equals(rule.path("ruleType").asString()) ||
                     !deviceType.name().equals(rule.path("deviceType").asString())) {
                 continue;
             }

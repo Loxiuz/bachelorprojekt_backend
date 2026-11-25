@@ -4,10 +4,10 @@ import com.bachelorprojekt_backend.alarm.HighActivityAlarm;
 import com.bachelorprojekt_backend.model.Device;
 import com.bachelorprojekt_backend.model.DeviceEvent;
 import com.bachelorprojekt_backend.model.Door;
-import com.bachelorprojekt_backend.model.RuleConfig;
+import com.bachelorprojekt_backend.model.TenantAlarmRuleConfig;
 import com.bachelorprojekt_backend.model.Tenant;
 import com.bachelorprojekt_backend.repository.DeviceEventRepository;
-import com.bachelorprojekt_backend.repository.RuleConfigRepository;
+import com.bachelorprojekt_backend.repository.TenantAlarmRuleConfigRepository;
 import com.bachelorprojekt_backend.rule.HighActivityRule;
 import com.bachelorprojekt_backend.types.AlarmType;
 import com.bachelorprojekt_backend.types.DeviceType;
@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class RuleServiceTest {
-    private final RuleConfigRepository configs = mock(RuleConfigRepository.class);
+    private final TenantAlarmRuleConfigRepository configs = mock(TenantAlarmRuleConfigRepository.class);
     private final DeviceEventRepository openings = mock(DeviceEventRepository.class);
     private final AlarmService alarms = mock(AlarmService.class);
     private final RuleService rules = new RuleService(configs, openings, JsonMapper.builder().build(), alarms);
@@ -40,8 +40,8 @@ class RuleServiceTest {
             """;
 
     private void config(UUID id, String json) {
-        RuleConfig config = new RuleConfig();
-        config.setConfig(json);
+        TenantAlarmRuleConfig config = new TenantAlarmRuleConfig();
+        config.setRuleConfig(json);
         when(configs.findById(id)).thenReturn(Optional.of(config));
     }
 

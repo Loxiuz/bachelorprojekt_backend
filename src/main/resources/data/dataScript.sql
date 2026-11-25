@@ -4,7 +4,7 @@ INSERT INTO roles (id, role_name) VALUES (1,'ROLE_ADMIN'),(2,'ROLE_USER');
 INSERT INTO tenants(id, tenant_name) VALUES (uuid_in('24917aa9-db47-45aa-ba24-44f0ee2f6eca'), 'Test Tenant 1'),
                                             (uuid_in('74bc7cc2-c403-4ffb-bad9-ca92950001ff'), 'Test Tenant 2');
 
-INSERT INTO rule_configs (tenant_id, config) VALUES
+INSERT INTO rule_configs (tenant_id, ruleConfig) VALUES
     (uuid_in('24917aa9-db47-45aa-ba24-44f0ee2f6eca'), '{"rules":[{"ruleName":"Høj aktivitet","ruleType":"HIGH_ACTIVITY","deviceType":"DIGITAL_DOOR","ruleCondition":{"openings":5,"withinMinutes":10}}]}'),
     (uuid_in('74bc7cc2-c403-4ffb-bad9-ca92950001ff'), '{"rules":[]}');
 

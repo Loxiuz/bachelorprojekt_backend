@@ -20,7 +20,7 @@ import java.util.UUID;
 @Entity
 @NoArgsConstructor
 @Table(name = "rule_configs")
-public class RuleConfig {
+public class TenantAlarmRuleConfig {
     @Id
     @Column(name = "tenant_id")
     private UUID tenantId;
@@ -32,5 +32,9 @@ public class RuleConfig {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private String config;
+    private String ruleConfig;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private String alarmConfig;
 }
