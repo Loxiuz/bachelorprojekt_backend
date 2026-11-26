@@ -8,10 +8,7 @@ import com.bachelorprojekt_backend.model.Tenant;
 import com.bachelorprojekt_backend.repository.DeviceEventRepository;
 import com.bachelorprojekt_backend.repository.TenantAlarmRuleConfigRepository;
 import com.bachelorprojekt_backend.rule.HighActivityRule;
-import com.bachelorprojekt_backend.types.AlarmType;
-import com.bachelorprojekt_backend.types.DeviceEventType;
-import com.bachelorprojekt_backend.types.DeviceType;
-import com.bachelorprojekt_backend.types.RuleType;
+import com.bachelorprojekt_backend.types.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import tools.jackson.core.JacksonException;
@@ -53,12 +50,17 @@ public class RuleService {
         Instant openedAt = event.getOccurredAt();
         for (HighActivityRule rule : getHighActivityRulesFromConfig(tenant.getId(), device.getDeviceType())) {
             Instant start = openedAt.minus(rule.withinMinutes(), ChronoUnit.MINUTES);
-            long previousOpenings = deviceEventRepository.countByDeviceIdAndEventTypeAndOccurredAtAfterAndOccurredAtLessThanEqual(
+            long openings = deviceEventRepository.countByDeviceIdAndEventTypeAndOccurredAtAfterAndOccurredAtLessThanEqual(
                     device.getId(), DeviceEventType.DOOR_OPENED, start, openedAt);
-            if (previousOpenings < rule.openings() && previousOpenings + 1 >= rule.openings()) {
-                alarmService.send(new HighActivityAlarm(
-                        AlarmType.HIGH_ACTIVITY, tenant.getId(), device.getId(),
-                        device.getDoor().getId(), rule.ruleName(), openedAt, previousOpenings + 1, rule.withinMinutes()));
+            log.info("Evaluating high activity rule {} for device {}: openings={} withinMinutes={}", rule.ruleName(), device.getId(), openings, rule.withinMinutes());
+            if (openings == rule.openings()) {
+                HighActivityAlarm alarm = new HighActivityAlarm(
+                        RuleType.HIGH_ACTIVITY, tenant.getId(), device.getId(),
+                        device.getDoor().getId(), event.getId(), rule.ruleName(), Severity.HIGH, openedAt, openings, rule.withinMinutes());
+                var savedAlarm = alarmService.saveAlarm(event, alarm);
+                log.info("alarm to be saved details: {}", savedAlarm.getId()); // Log for testing purposes
+                alarmService.send(alarm);
+                alarmService.publishCreated(savedAlarm.getId());
             }
         }
     }

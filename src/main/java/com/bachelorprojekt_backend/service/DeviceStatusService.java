@@ -56,8 +56,8 @@ public class DeviceStatusService {
                 event.setDevice(device);
                 event.setEventType(DeviceEventType.DOOR_OPENED);
                 event.setOccurredAt(deviceStatusDTO.readAt());
-                ruleService.evaluateEvent(event);
                 deviceEventRepository.save(event);
+                ruleService.evaluateEvent(event);
             }
             statusReadingRepository.save(fromCurrentStatusReading(currentStatusReading));
         } else {
