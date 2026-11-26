@@ -11,5 +11,6 @@ public record DeviceStatusDTO(
         @NotNull @Min(0) @Max(100) Integer batteryLevel,
         @NotNull Boolean locked,
         @NotNull Boolean doorOpen,
-        @NotNull Boolean isOnline) {
+        @NotNull Boolean isOnline
+) {
 }

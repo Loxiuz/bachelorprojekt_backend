@@ -8,7 +8,7 @@ const deviceTypes = {
         createState: () => ({ batteryLevel: 100, locked: true, doorOpen: false, isOnline: true, readAt: new Date().toISOString() }),
         update: (state) => {
             const batteryLevel = Math.max(0, state.batteryLevel - 1);
-            const doorOpen = Math.random() < 0.1 ? !state.doorOpen : state.doorOpen;
+            const doorOpen = Math.random() < 0.5 ? !state.doorOpen : state.doorOpen;
             const randomIsLocked = Math.random() < 0.1 ? !state.locked : state.locked;
             const locked = doorOpen ? false : randomIsLocked;
             const isOnline = Math.random() < 0.05 ? !state.isOnline : state.isOnline;
@@ -29,7 +29,7 @@ const deviceTypes = {
 };
 
 const deviceConfigs = [
-    { id: "d06c72ee-56f1-4b6a-9a7a-18b58e36a111", type: "digitalDoor", intervalMs: 5000, token: process.env.SIMULATOR_TOKEN_A },
+    { id: "d06c72ee-56f1-4b6a-9a7a-18b58e36a111", type: "digitalDoor", intervalMs: 2000, token: process.env.SIMULATOR_TOKEN_A },
     { id: "d06c72ee-56f1-4b6a-9a7a-18b58e36a222", type: "digitalDoor", intervalMs: 5000, token: process.env.SIMULATOR_TOKEN_B },
     { id: "d06c72ee-56f1-4b6a-9a7a-18b58e36a113", type: "digitalDoor", intervalMs: 5000, token: process.env.SIMULATOR_TOKEN_C },
     { id: "d06c72ee-56f1-4b6a-9a7a-18b58e36a114", type: "digitalDoor", intervalMs: 5000, token: process.env.SIMULATOR_TOKEN_D },
@@ -44,7 +44,7 @@ const deviceConfigs = [
 });
 
 if (deviceConfigs.length === 0) {
-    throw new Error("Set SIMULATOR_TOKEN_A or SIMULATOR_TOKEN_B");
+    throw new Error("Set SIMULATOR_TOKEN_A, SIMULATOR_TOKEN_B, SIMULATOR_TOKEN_C, SIMULATOR_TOKEN_D, SIMULATOR_TOKEN_E, or SIMULATOR_TOKEN_F");
 }
 
 function createDevice(config) {

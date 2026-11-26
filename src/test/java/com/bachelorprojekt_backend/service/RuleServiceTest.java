@@ -1,6 +1,7 @@
 package com.bachelorprojekt_backend.service;
 
 import com.bachelorprojekt_backend.alarm.HighActivityAlarm;
+import com.bachelorprojekt_backend.model.Alarm;
 import com.bachelorprojekt_backend.model.Device;
 import com.bachelorprojekt_backend.model.DeviceEvent;
 import com.bachelorprojekt_backend.model.Door;
@@ -9,9 +10,10 @@ import com.bachelorprojekt_backend.model.Tenant;
 import com.bachelorprojekt_backend.repository.DeviceEventRepository;
 import com.bachelorprojekt_backend.repository.TenantAlarmRuleConfigRepository;
 import com.bachelorprojekt_backend.rule.HighActivityRule;
-import com.bachelorprojekt_backend.types.AlarmType;
+import com.bachelorprojekt_backend.types.RuleType;
 import com.bachelorprojekt_backend.types.DeviceType;
 import com.bachelorprojekt_backend.types.DeviceEventType;
+import com.bachelorprojekt_backend.types.Severity;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -60,6 +62,7 @@ class RuleServiceTest {
 
     private DeviceEvent event(Device device, DeviceEventType type) {
         DeviceEvent event = new DeviceEvent();
+        event.setId(UUID.randomUUID());
         event.setDevice(device);
         event.setEventType(type);
         event.setOccurredAt(now);
@@ -103,7 +106,12 @@ class RuleServiceTest {
         config(tenantId, CONFIG);
         Device device = device(tenantId);
         when(openings.countByDeviceIdAndEventTypeAndOccurredAtAfterAndOccurredAtLessThanEqual(
-                deviceId, DeviceEventType.DOOR_OPENED, now.minusSeconds(600), now)).thenReturn(3L, 4L, 5L, 4L);
+                deviceId, DeviceEventType.DOOR_OPENED, now.minusSeconds(600), now)).thenReturn(3L, 4L, 5L, 6L);
+        when(alarms.saveAlarm(any(), any())).thenAnswer(invocation -> {
+            var alarm = new Alarm();
+            alarm.setId(UUID.randomUUID());
+            return alarm;
+        });
 
         rules.evaluateEvent(event(device, DeviceEventType.DOOR_OPENED));
         rules.evaluateEvent(event(device, DeviceEventType.DOOR_OPENED));
@@ -111,9 +119,17 @@ class RuleServiceTest {
         rules.evaluateEvent(event(device, DeviceEventType.DOOR_OPENED));
 
         var captured = org.mockito.ArgumentCaptor.forClass(HighActivityAlarm.class);
-        verify(alarms, times(2)).send(captured.capture());
-        assertEquals(new HighActivityAlarm(AlarmType.HIGH_ACTIVITY, tenantId, deviceId, doorId,
-                "Høj aktivitet", now, 5, 10), captured.getValue());
+        verify(alarms).send(captured.capture());
+        assertEquals(RuleType.HIGH_ACTIVITY, captured.getValue().type());
+        assertEquals(tenantId, captured.getValue().tenantId());
+        assertEquals(deviceId, captured.getValue().deviceId());
+        assertEquals(doorId, captured.getValue().doorId());
+        assertEquals("Høj aktivitet", captured.getValue().ruleName());
+        assertEquals(now, captured.getValue().occurredAt());
+        assertEquals(Severity.HIGH, captured.getValue().severity());
+        assertEquals(5, captured.getValue().openings());
+        assertEquals(10, captured.getValue().withinMinutes());
+        verify(alarms).publishCreated(any(UUID.class));
         verify(configs, times(4)).findById(tenantId);
         verify(openings, times(4)).countByDeviceIdAndEventTypeAndOccurredAtAfterAndOccurredAtLessThanEqual(
                 deviceId, DeviceEventType.DOOR_OPENED, now.minusSeconds(600), now);
@@ -133,16 +149,22 @@ class RuleServiceTest {
                 """);
         when(openings.countByDeviceIdAndEventTypeAndOccurredAtAfterAndOccurredAtLessThanEqual(
                 deviceId, DeviceEventType.DOOR_OPENED, now.minusSeconds(180), now))
-                .thenReturn(1L);
+                .thenReturn(2L);
         when(openings.countByDeviceIdAndEventTypeAndOccurredAtAfterAndOccurredAtLessThanEqual(
                 deviceId, DeviceEventType.DOOR_OPENED, now.minusSeconds(240), now))
-                .thenReturn(2L);
+                .thenReturn(3L);
+        when(alarms.saveAlarm(any(), any())).thenAnswer(invocation -> {
+            var alarm = new Alarm();
+            alarm.setId(UUID.randomUUID());
+            return alarm;
+        });
 
         rules.evaluateEvent(event(device(otherTenant), DeviceEventType.DOOR_OPENED));
         var captured = org.mockito.ArgumentCaptor.forClass(HighActivityAlarm.class);
         verify(alarms, times(2)).send(captured.capture());
         assertEquals(List.of("Two", "Three"), captured.getAllValues().stream().map(HighActivityAlarm::ruleName).toList());
         assertTrue(captured.getAllValues().stream().allMatch(alarm -> otherTenant.equals(alarm.tenantId())));
+        verify(alarms, times(2)).publishCreated(any(UUID.class));
         verify(configs, never()).findById(tenantId);
     }
 

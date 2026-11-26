@@ -19,7 +19,7 @@ import java.util.UUID;
 @Setter
 @Entity
 @NoArgsConstructor
-@Table(name = "rule_configs")
+@Table(name = "tenant_configs")
 public class TenantAlarmRuleConfig {
     @Id
     @Column(name = "tenant_id")

@@ -33,4 +33,5 @@ build/
 .vscode/
 
 env.properties
+testEnv.properties
 /simulator-credentials.local.ps1

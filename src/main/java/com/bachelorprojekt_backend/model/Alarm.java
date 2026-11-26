@@ -1,11 +1,8 @@
 package com.bachelorprojekt_backend.model;
 
-import com.bachelorprojekt_backend.types.AlarmType;
+import com.bachelorprojekt_backend.types.RuleType;
 import com.bachelorprojekt_backend.types.Severity;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,9 +22,14 @@ public class Alarm {
     private UUID id;
     @ManyToOne
     private Device device;
+    @ManyToOne
+    @JoinColumn(name = "device_event_id")
+    private DeviceEvent deviceEvent;
     @CreationTimestamp
     private Instant createdAt;
-    private AlarmType type;
+    @Enumerated(EnumType.STRING)
+    private RuleType type;
+    @Enumerated(EnumType.STRING)
     private Severity severity;
     private boolean acknowledged;
 

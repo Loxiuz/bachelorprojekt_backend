@@ -5,7 +5,9 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.bachelorprojekt_backend.alarm.HighActivityAlarm;
-import com.bachelorprojekt_backend.types.AlarmType;
+import com.bachelorprojekt_backend.repository.AlarmRepository;
+import com.bachelorprojekt_backend.types.RuleType;
+import com.bachelorprojekt_backend.types.Severity;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
@@ -23,6 +25,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 class AlarmServiceTest {
     @Test
@@ -34,8 +37,9 @@ class AlarmServiceTest {
         try (var context = new AnnotationConfigApplicationContext(TestConfig.class)) {
             var service = context.getBean(AlarmService.class);
             var transactions = new TransactionTemplate(context.getBean(PlatformTransactionManager.class));
-            var alarm = new HighActivityAlarm(AlarmType.HIGH_ACTIVITY, UUID.randomUUID(), UUID.randomUUID(),
-                    UUID.randomUUID(), "High activity", Instant.parse("2026-01-01T12:00:00Z"), 5, 10);
+            var alarm = new HighActivityAlarm(RuleType.HIGH_ACTIVITY, UUID.randomUUID(), UUID.randomUUID(),
+                                UUID.randomUUID(), UUID.randomUUID(), "High activity",
+                    Severity.HIGH, Instant.parse("2026-01-01T12:00:00Z"), 5, 10);
 
             transactions.executeWithoutResult(status -> {
                 service.send(alarm);
@@ -62,8 +66,14 @@ class AlarmServiceTest {
     @EnableTransactionManagement
     static class TestConfig {
         @Bean
-        AlarmService alarmService(org.springframework.context.ApplicationEventPublisher events) {
-            return new AlarmService(events);
+        AlarmService alarmService(org.springframework.context.ApplicationEventPublisher events,
+                                  AlarmRepository alarmRepository) {
+            return new AlarmService(events, alarmRepository);
+        }
+
+        @Bean
+        AlarmRepository alarmRepository() {
+            return mock(AlarmRepository.class);
         }
 
         @Bean
